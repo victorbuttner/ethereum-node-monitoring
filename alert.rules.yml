@@ -1,0 +1,29 @@
+groups:
+  - name: ethereum_alerts
+    rules:
+      - alert: EthereumNodeDown
+        expr: up{job="ethereum"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ethereum node is down"
+          description: "The Ethereum node has been down for more than 1 minute."
+
+      - alert: HighMemoryUsage
+        expr: node_memory_Active_bytes / node_memory_MemTotal_bytes * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 80% for more than 5 minutes."
+
+      - alert: HighCPULoad
+        expr: node_load1 > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU load detected"
+          description: "CPU load is above 2 for more than 5 minutes."

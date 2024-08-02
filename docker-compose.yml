@@ -1,0 +1,65 @@
+version: "3"
+services:
+  ethereum:
+    image: ethereum/client-go:stable
+    command: '--goerli --metrics --metrics.addr 0.0.0.0 --metrics.expensive --http.vhosts=* --goerli --syncmode "snap" --http --http.addr "0.0.0.0" --http.port 8545 --http.corsdomain "*" --http.api eth,web3,net  --verbosity 3 --log.format json --log.file /var/log/geth/geth.log'
+    ports:
+      - "8545:8545"
+      - "30303:30303"
+    volumes:
+      - ./geth-logs:/var/log/geth
+
+  geth_exporter:
+    image: hunterlong/gethexporter
+    environment:
+      - GETH=http://ethereum:8545
+    ports:
+      - "9091:9090"
+    depends_on:
+      - ethereum
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alert.rules.yml:/etc/prometheus/alert.rules.yml
+
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+
+  loki:
+    image: grafana/loki
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml
+      - ./loki:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/promtail-config.yml
+      - ./geth-logs:/geth-logs
+    command: -config.file=/etc/promtail/promtail-config.yml
+    ports:
+      - "9080:9080"
+
+  alertmanager:
+    image: prom/alertmanager
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/config.yml
+    ports:
+      - "9093:9093"
+
+  node_exporter:
+    image: prom/node-exporter
+    ports:
+      - "9100:9100"
